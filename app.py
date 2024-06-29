@@ -28,8 +28,8 @@ app.secret_key = '886276ab36dc7e16d549119e1f811852'  # Replace with your actual 
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = 'masthansaginala163@gmail.com'
-app.config['MAIL_PASSWORD'] = 'ztoy gjlq walh fibh'
+app.config['MAIL_USERNAME'] = ''
+app.config['MAIL_PASSWORD'] = ''
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
@@ -39,9 +39,9 @@ mail = Mail(app)
 # PostgreSQL connection details
 db_config = {
     'host': 'localhost',  # Assuming PostgreSQL is running on the same machine
-    'dbname': 'chat_db',  # Replace with your PostgreSQL database name
+    'dbname': ' ',  # Replace with your PostgreSQL database name
     'user': 'postgres',  # Replace with your PostgreSQL username
-    'password': 'Masthan@2021'  # Replace with your PostgreSQL password
+    'password': ' 1'  # Replace with your PostgreSQL password
 }
 
 def get_db_connection():
