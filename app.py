@@ -17,7 +17,7 @@
 
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask_mail import Mail, Message
+from flask_mail import Message, Mail
 import psycopg2
 from psycopg2 import sql
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
@@ -39,9 +39,9 @@ mail = Mail(app)
 # PostgreSQL connection details
 db_config = {
     'host': 'localhost',  # Assuming PostgreSQL is running on the same machine
-    'dbname': ' ',  # Replace with your PostgreSQL database name
+    'dbname': '',  # Replace with your PostgreSQL database name
     'user': 'postgres',  # Replace with your PostgreSQL username
-    'password': ' 1'  # Replace with your PostgreSQL password
+    'password': ''  # Replace with your PostgreSQL password
 }
 
 def get_db_connection():
@@ -83,6 +83,9 @@ def register():
         cursor.close()
         conn.close()
 
+        msg = Message('Confirm Your Account', sender = app.config['MAIL_USERNAME'], recipients = [email])
+        msg.body = 'This is your activation link'
+        mail.send(msg)
         
         return redirect(url_for('index'))
 
