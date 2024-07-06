@@ -24,6 +24,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 
 app = Flask(__name__)
 app.secret_key = '886276ab36dc7e16d549119e1f811852'  # Replace with your actual secret key
+s = URLSafeTimedSerializer(app.secret_key)
 
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -82,14 +83,34 @@ def register():
         conn.commit()
         cursor.close()
         conn.close()
+        token = s.dumps(email, salt='email-confirm')
+        link = url_for('confirm_email', token=token, _external=True)
+
 
         msg = Message('Confirm Your Account', sender = app.config['MAIL_USERNAME'], recipients = [email])
-        msg.body = 'This is your activation link'
+        msg.body = f'This is your activation link {link}'
         mail.send(msg)
+        flash('A confirmation email has been sent via email.', 'success')
         
         return redirect(url_for('index'))
 
     return render_template('register.html')
 
+@app.route('/confirm_email/<token>')
+def confirm_email(token):
+    try:
+        email = s.loads(token, salt='email-confirm', max_age=3600)
+    except SignatureExpired:
+        return '<h1>The token is expired!</h1>'
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET active = TRUE WHERE email = %s", (email,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    flash('Your account has been activated!', 'success')
+    return redirect(url_for('index'))
 if __name__ == '__main__':
     app.run(debug=True)
