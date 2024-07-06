@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
+from werkzeug.security import generate_password_hash, check_password_hash password 
 from flask_mail import Message, Mail
 import psycopg2
 from psycopg2 import sql
@@ -58,7 +59,7 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-
+        password = generate_password_hash(password)
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("INSERT INTO users (email, password, active) VALUES (%s, %s, %s)", (email, password, False))
@@ -107,11 +108,12 @@ def login():
         user = cursor.fetchone()
         cursor.close()
         conn.close()
-        if user.email and user.password:
-            flash('login successfull')
+        if user and check_password_hash(user[2], password):  # user[2] is the hashed password
+            flash('Login successful!', 'success')
+            return redirect(url_for('index'))
         else:
-            flash('something is problem')
-    return render_template('index.html')
+            flash('Invalid email or password','error')
+    return render_template('chat.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
