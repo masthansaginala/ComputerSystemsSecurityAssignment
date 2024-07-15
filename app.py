@@ -123,5 +123,11 @@ def chat():
         return redirect(url_for('login'))
     return render_template('chat.html')
 
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    flash('you are logged out please login again to have our services')
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
     app.run(debug=True)
