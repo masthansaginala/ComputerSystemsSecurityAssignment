@@ -116,5 +116,12 @@ def login():
             return redirect(url_for('login'))
     return render_template('login.html')
 
+@app.route('/chat')
+def chat():
+    if 'user_id' not in session:
+        flash('Please log in first', 'error')
+        return redirect(url_for('login'))
+    return render_template('chat.html')
+
 if __name__ == '__main__':
     app.run(debug=True)
