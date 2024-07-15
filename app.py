@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
-from werkzeug.security import generate_password_hash, check_password_hash password 
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Message, Mail
 import psycopg2
 from psycopg2 import sql
@@ -108,12 +108,13 @@ def login():
         user = cursor.fetchone()
         cursor.close()
         conn.close()
-        if user and check_password_hash(user[2], password):  # user[2] is the hashed password
-            flash('Login successful!', 'success')
-            return redirect(url_for('index'))
+        if user and check_password_hash(user[2], password):
+            session['user_id'] = user[0]
+            return redirect(url_for('chat'))
         else:
             flash('Invalid email or password','error')
-    return render_template('chat.html')
+            return redirect(url_for('login'))
+    return render_template('login.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
