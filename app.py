@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Message, Mail
 from flask_sqlalchemy import SQLAlchemy
@@ -93,11 +93,8 @@ def login():
         password = request.form['password']
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password) and user.active:
-            access_token = create_access_token(identity={'email': user.email})
-            response = make_response(redirect(url_for('index')))
-            response.set_cookie('access_token', access_token)
             flash('Login successful!', 'success')
-            return response
+            return render_template('chat.html')
         else:
             flash('Invalid email or password, or account not activated', 'error')
     return render_template('login.html')
