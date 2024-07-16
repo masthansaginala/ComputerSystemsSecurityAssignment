@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Message, Mail
 from flask_sqlalchemy import SQLAlchemy
@@ -91,7 +91,6 @@ def login():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
-
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password) and user.active:
             access_token = create_access_token(identity={'email': user.email})
@@ -103,18 +102,18 @@ def login():
             flash('Invalid email or password, or account not activated', 'error')
     return render_template('login.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
-    response = make_response(redirect(url_for('index')))
-    response.set_cookie('access_token', '', expires=0)
-    flash('You have been logged out!', 'success')
-    return response
+    session.pop('user_id', None)
+    flash('you are logged out please login again to have our services')
+    return redirect(url_for('index'))
 
 @app.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
+        
 
 if __name__ == '__main__':
     app.run(debug=True)
