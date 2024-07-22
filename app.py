@@ -250,5 +250,15 @@ def handle_send_message(data):
         'nonce': b64encode(nonce).decode('utf-8'),
         'encrypted_message': b64encode(encrypted_message).decode('utf-8')
     }, room=recipient)
+
+def handle_receive_message(data):
+    encrypted_message = b64decode(data['encrypted_message'])
+    nonce = b64decode(data['nonce'])
+    
+    # Decrypt message with AES key
+    aes_key = session.get('aes_key')
+    if not aes_key:
+        emit('error', {'message': 'AES key not found'}, room=session['email'])
+        return
 if __name__ == '__main__':
     app.run(debug=True)
