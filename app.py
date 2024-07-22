@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from flask_socketio import SocketIO, join_room, emit
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     PrivateFormat,
@@ -158,5 +159,40 @@ def handle_start_chat(data):
     else:
         emit('error', {'message': 'Recipient not found'}, room=sender_email)
 
+@socketio.on('accept_chat')
+def handle_accept_chat(data):
+    recipient_email = session['email']
+    sender_email = data['sender']
+    sender_public_key = data['public_key']
+    
+    
+    private_key = parameters.generate_private_key()
+    public_key = private_key.public_key()
+    
+     
+    session['private_key'] = private_key.private_bytes(
+        Encoding.PEM,
+        PrivateFormat.PKCS8,
+        NoEncryption()
+    )
+  
+    public_key_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    public_keys[recipient_email] = b64encode(public_key_pem).decode('utf-8')
+    
+    
+    sender_user = User.query.filter_by(email=sender_email).first()
+    if sender_user:
+        msg = Message('Public Key Exchange', sender=app.config['MAIL_USERNAME'], recipients=[sender_email])
+        msg.body = f'Public key from {recipient_email}: {public_keys[recipient_email]}'
+        mail.send(msg)
+        
+       
+        emit('chat_request_accepted', {'recipient': recipient_email, 'public_key': public_keys[recipient_email]}, room=sender_email)
+        
+        
+        socketio.emit('exchange_keys', {'other_user': recipient_email, 'public_key': public_keys[recipient_email]}, room=sender_email)
+        socketio.emit('exchange_keys', {'other_user': sender_email, 'public_key': sender_public_key}, room=recipient_email)
+    else:
+        emit('error', {'message': 'Sender not found'}, room=recipient_email)
 if __name__ == '__main__':
     app.run(debug=True)
