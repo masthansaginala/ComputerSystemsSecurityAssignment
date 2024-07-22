@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
 from dotenv import load_dotenv
-from flask_socketio import SocketIO, join_room
+from flask_socketio import SocketIO, join_room, emit
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import (
@@ -121,7 +121,10 @@ def chat():
 def handle_connect():
     email = session.get('email')
     if email:
-        join_room(email)g
+        join_room(email)
+        if email in chat_requests:
+            for request in chat_requests[email]:
+                socketio.emit('chat_request_received', {'sender': request['sender'], 'public_key': request['public_key']}, room=email)
 
 
 parameters = dh.generate_parameters(generators=2, key_size = 2048, backend = default_backend())
@@ -146,6 +149,12 @@ def handle_start_chat(data):
         msg = Message('Public Key Exchange', sender=app.config['MAIL_USERNAME'], recipients=[recipient_email])
         msg.body = f'Public key from {sender_email}: {public_keys[sender_email]}'
         mail.send(msg)
+        
+        if recipient_email not in chat_requests:
+            chat_requests[recipient_email] = []
+        chat_requests[recipient_email].append({'sender': sender_email, 'public_key': public_keys[sender_email]})
+        
+        emit('chat_request_sent', {'status': 'Chat request sent', 'public_key': public_keys[sender_email]}, room=sender_email)
     else:
         emit('error', {'message': 'Recipient not found'}, room=sender_email)
 
