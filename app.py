@@ -114,7 +114,16 @@ def handle_connect():
     email = session.get('email')
     if email:
         join_room(email)g
-        
+
+
+parameters = dh.generate_parameters(generators=2, key_size = 2048, backend = default_backend())
+@socketio.on('start_chat')
+def handle_start_chat(data):
+    sender_email = session['eamil']
+    recipient_email = data['recipient']
+
+    private_key = parameters.generate_private_key()
+    publick_key = private_key.publick_key
 
 if __name__ == '__main__':
     app.run(debug=True)
