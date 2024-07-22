@@ -141,5 +141,13 @@ def handle_start_chat(data):
     public_key_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
     public_keys[recipient_email] = b64encode(public_key_pem).decode('utf-8')
 
+    recipient_user = User.query.filter_by(email=recipient_email).first()
+    if recipient_user:
+        msg = Message('Public Key Exchange', sender=app.config['MAIL_USERNAME'], recipients=[recipient_email])
+        msg.body = f'Public key from {sender_email}: {public_keys[sender_email]}'
+        mail.send(msg)
+    else:
+        emit('error', {'message': 'Recipient not found'}, room=sender_email)
+
 if __name__ == '__main__':
     app.run(debug=True)
