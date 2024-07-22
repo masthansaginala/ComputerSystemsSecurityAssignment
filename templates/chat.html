@@ -80,6 +80,19 @@
             socket.on('keys_exchanged', (data) => {
                 alert(data.status);
             });
+            socket.on('receive_message', (data) => {
+                const messageElem = document.createElement('p');
+                messageElem.textContent = `Encrypted: ${data.encrypted_message}`;
+                document.getElementById('receivedMessages').appendChild(messageElem);
+                console.log(data); // For debugging
+            });
+
+            socket.on('message', (data) => {
+                const messageElem = document.createElement('p');
+                messageElem.textContent = `Decrypted: ${data.message}`;
+                document.getElementById('receivedMessages').appendChild(messageElem);
+                console.log(data); // For debugging
+            });
             document.getElementById('startChatBtn').addEventListener('click', () => {
                 const recipient = document.getElementById('recipient').value;
                 socket.emit('start_chat', { recipient });
@@ -104,6 +117,8 @@
             <label>Message:</label>
             <input type="text" id="message" required>
             <button id="sendMessageBtn">Send</button>
+            <h2>Received Messages</h2>
+            <div id="receivedMessages"></div>
             <form action="{{ url_for('logout') }}" method="POST">
                 <button type="submit" class="logout-button">Logout</button>
             </form>

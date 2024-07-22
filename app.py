@@ -260,5 +260,12 @@ def handle_receive_message(data):
     if not aes_key:
         emit('error', {'message': 'AES key not found'}, room=session['email'])
         return
+    aesgcm = AESGCM(aes_key)
+    decrypted_message = aesgcm.decrypt(nonce, encrypted_message, None)
+    
+    # Emit the decrypted message to the user
+    socketio.emit('message', {'message': decrypted_message.decode('utf-8'), 'sender': data['sender']}, room=session['email'])
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)
+
