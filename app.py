@@ -20,6 +20,7 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 # Load environment variables from .env file
 load_dotenv()
 
@@ -228,5 +229,16 @@ def handle_exchange_keys(data):
     session['aes_key'] = derived_key
     
     emit('keys_exchanged', {'status': 'Keys exchanged successfully'}, room=email)
+
+@socketio.on('send_message')
+def handle_send_message(data):
+    message = data['message']
+    recipient = data['recipient']
+    
+    # Encrypt message with AES key
+    aes_key = session.get('aes_key')
+    if not aes_key:
+        emit('error', {'message': 'AES key not found'}, room=session['email'])
+        return
 if __name__ == '__main__':
     app.run(debug=True)
