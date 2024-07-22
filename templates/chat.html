@@ -55,6 +55,18 @@
             socket.on('connect', () => {
                 console.log('Connected to the server');
             });
+            socket.on('chat_request_received', (data) => {
+                console.log('Chat request received from:', data.sender);
+                const requestElem = document.createElement('div');
+                requestElem.textContent = 'Chat request from ${data.sender}';
+                const acceptButton = document.createElement('button');
+                acceptButton.textContent = 'Accept';
+                acceptButton.addEventListener('click', () => {
+                    socket.emit('accept_chat', { sender: data.sender, public_key: data.public_key });
+                });
+                requestElem.appendChild(acceptButton);
+                document.getElementById('chatRequests').appendChild(requestElem);
+            });
             document.getElementById('startChatBtn').addEventListener('click', () => {
                 const recipient = document.getElementById('recipient').value;
                 socket.emit('start_chat', { recipient });
