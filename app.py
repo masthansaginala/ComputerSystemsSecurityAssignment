@@ -14,6 +14,8 @@ from cryptography.hazmat.primitives.serialization import (
     Encoding,
     PrivateFormat,
     PublicFormat,
+    load_pem_private_key,
+    load_pem_public_key,
     NoEncryption
 )
 # Load environment variables from .env file
@@ -194,5 +196,21 @@ def handle_accept_chat(data):
         socketio.emit('exchange_keys', {'other_user': sender_email, 'public_key': sender_public_key}, room=recipient_email)
     else:
         emit('error', {'message': 'Sender not found'}, room=recipient_email)
+@socketio.on('exchange_keys')
+def handle_exchange_keys(data):
+    email = session['email']
+    other_user = data['other_user']
+    other_public_key_pem = b64decode(data['public_key'])
+    
+    other_public_key = load_pem_public_key(other_public_key_pem, backend=default_backend())
+    
+    # Load private key from session
+    private_key_pem = session.get('private_key')
+    if not private_key_pem:
+        emit('error', {'message': 'Private key not found'}, room=email)
+        return
+    
+    private_key = load_pem_private_key(private_key_pem, password=None, backend=default_backend())
+
 if __name__ == '__main__':
     app.run(debug=True)
