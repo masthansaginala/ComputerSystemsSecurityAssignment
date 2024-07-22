@@ -67,6 +67,19 @@
                 requestElem.appendChild(acceptButton);
                 document.getElementById('chatRequests').appendChild(requestElem);
             });
+            socket.on('public_key_received', (data) => {
+                console.log('Received public key from:', data.sender);
+                console.log('Public Key:', data.public_key);
+                socket.emit('exchange_keys', { other_user: data.sender, public_key: data.public_key });
+            });
+            socket.on('chat_request_accepted', (data) => {
+                console.log('Chat request accepted by:', data.recipient);
+                socket.emit('get_public_key', { user: data.recipient });
+            });
+
+            socket.on('keys_exchanged', (data) => {
+                alert(data.status);
+            });
             document.getElementById('startChatBtn').addEventListener('click', () => {
                 const recipient = document.getElementById('recipient').value;
                 socket.emit('start_chat', { recipient });
