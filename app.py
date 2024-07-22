@@ -18,6 +18,8 @@ from cryptography.hazmat.primitives.serialization import (
     load_pem_public_key,
     NoEncryption
 )
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hashes
 # Load environment variables from .env file
 load_dotenv()
 
@@ -211,6 +213,20 @@ def handle_exchange_keys(data):
         return
     
     private_key = load_pem_private_key(private_key_pem, password=None, backend=default_backend())
-
+        # Generate shared secret
+    shared_key = private_key.exchange(other_public_key)
+    
+    # Derive AES key from shared secret
+    derived_key = HKDF(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=None,
+        info=b'handshake data',
+        backend=default_backend()
+    ).derive(shared_key)
+    
+    session['aes_key'] = derived_key
+    
+    emit('keys_exchanged', {'status': 'Keys exchanged successfully'}, room=email)
 if __name__ == '__main__':
     app.run(debug=True)
