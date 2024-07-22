@@ -3,7 +3,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Message, Mail
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
 from dotenv import load_dotenv
@@ -29,8 +28,6 @@ mail = Mail(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:admin123@localhost:5432/chatapplication'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Configuration for Flask-JWT-Extended
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')  # Load secret key from environment variable
 
 # Instantiate SQLAlchemy, Migrate, and JWTManager
 db = SQLAlchemy(app)
@@ -94,6 +91,7 @@ def login():
         user = User.query.filter_by(email=email).first()
         if user and check_password_hash(user.password, password) and user.active:
             flash('Login successful!', 'success')
+            session['email'] = email
             return render_template('chat.html')
         else:
             flash('Invalid email or password, or account not activated', 'error')
@@ -101,7 +99,7 @@ def login():
 
 @app.route('/logout', methods=['POST'])
 def logout():
-    session.pop('user_id', None)
+    session.pop('email', None)
     flash('you are logged out please login again to have our services')
     return redirect(url_for('index'))
 
