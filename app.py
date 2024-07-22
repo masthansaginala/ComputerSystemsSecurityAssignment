@@ -1,15 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_mail import Message, Mail
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
-import os
 from dotenv import load_dotenv
-from flask_socketio import SocketIO, join_room, emit
-from cryptography.hazmat.primitives.asymmetric import dh
-from cryptography.hazmat.backends import default_backend
+from flask_socketio import SocketIO, join_room, leave_room, emit
+import os
 from base64 import b64encode, b64decode
+from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     PrivateFormat,
@@ -19,14 +19,16 @@ from cryptography.hazmat.primitives.serialization import (
     NoEncryption
 )
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = '886276ab36dc7e16d549119e1f811852'  # Replace with your actual secret key
+app.secret_key = os.getenv('SECRET_KEY', 'your_secret_key')
 s = URLSafeTimedSerializer(app.secret_key)
+socketio = SocketIO(app)
 
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
@@ -39,7 +41,8 @@ app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
 # Configuration for SQLAlchemy
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:admin123@localhost:5432/chatapplication'
+app.config['SQLALCHEMY_DATABASE_URI'] =  'postgresql://postgres:admin123@localhost:5432/chatapplication'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -48,12 +51,19 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 jwt = JWTManager(app)
 
+# Diffie-Hellman key exchange parameters
+parameters = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
+
 # User model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     active = db.Column(db.Boolean, default=False)
+
+# Temporary in-app storage for public keys and chat requests
+public_keys = {}
+chat_requests = {}
 
 @app.route('/')
 def index():
@@ -106,7 +116,7 @@ def login():
         if user and check_password_hash(user.password, password) and user.active:
             flash('Login successful!', 'success')
             session['email'] = email
-            return render_template('chat.html')
+            return redirect(url_for('chat'))
         else:
             flash('Invalid email or password, or account not activated', 'error')
     return render_template('login.html')
@@ -114,7 +124,9 @@ def login():
 @app.route('/logout', methods=['POST'])
 def logout():
     session.pop('email', None)
-    flash('you are logged out please login again to have our services')
+    session.pop('private_key', None)
+    session.pop('aes_key', None)
+    flash('You are logged out. Please log in again to use our services.')
     return redirect(url_for('index'))
 
 @app.route('/chat')
@@ -130,17 +142,15 @@ def handle_connect():
         join_room(email)
         if email in chat_requests:
             for request in chat_requests[email]:
-                socketio.emit('chat_request_received', {'sender': request['sender'], 'public_key': request['public_key']}, room=email)
+                socketio.emit('chat_request_received', {'sender': request['sender'], 'public_key': request['public_key']}, room=email)
 
-
-parameters = dh.generate_parameters(generators=2, key_size = 2048, backend = default_backend())
 @socketio.on('start_chat')
 def handle_start_chat(data):
-    sender_email = session['eamil']
+    sender_email = session['email']
     recipient_email = data['recipient']
 
     private_key = parameters.generate_private_key()
-    public_key = private_key.public_key
+    public_key = private_key.public_key()
 
     session['private_key'] = private_key.private_bytes(
         Encoding.PEM,
@@ -148,7 +158,7 @@ def handle_start_chat(data):
         NoEncryption()
     )
     public_key_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
-    public_keys[recipient_email] = b64encode(public_key_pem).decode('utf-8')
+    public_keys[sender_email] = b64encode(public_key_pem).decode('utf-8')
 
     recipient_user = User.query.filter_by(email=recipient_email).first()
     if recipient_user:
@@ -173,14 +183,11 @@ def handle_accept_chat(data):
     
     private_key = parameters.generate_private_key()
     public_key = private_key.public_key()
-    
-     
     session['private_key'] = private_key.private_bytes(
         Encoding.PEM,
         PrivateFormat.PKCS8,
         NoEncryption()
     )
-  
     public_key_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
     public_keys[recipient_email] = b64encode(public_key_pem).decode('utf-8')
     
@@ -190,8 +197,6 @@ def handle_accept_chat(data):
         msg = Message('Public Key Exchange', sender=app.config['MAIL_USERNAME'], recipients=[sender_email])
         msg.body = f'Public key from {recipient_email}: {public_keys[recipient_email]}'
         mail.send(msg)
-        
-       
         emit('chat_request_accepted', {'recipient': recipient_email, 'public_key': public_keys[recipient_email]}, room=sender_email)
         
         
@@ -214,7 +219,7 @@ def handle_exchange_keys(data):
         return
     
     private_key = load_pem_private_key(private_key_pem, password=None, backend=default_backend())
-        # Generate shared secret
+    # Generate shared secret
     shared_key = private_key.exchange(other_public_key)
     
     # Derive AES key from shared secret
@@ -228,7 +233,7 @@ def handle_exchange_keys(data):
     
     session['aes_key'] = derived_key
     
-    emit('keys_exchanged', {'status': 'Keys exchanged successfully'}, room=email)
+    emit('keys_exchanged', {'status': 'Keys exchanged successfully'}, room=email)
 
 @socketio.on('send_message')
 def handle_send_message(data):
@@ -251,6 +256,7 @@ def handle_send_message(data):
         'encrypted_message': b64encode(encrypted_message).decode('utf-8')
     }, room=recipient)
 
+@socketio.on('receive_message')
 def handle_receive_message(data):
     encrypted_message = b64decode(data['encrypted_message'])
     nonce = b64decode(data['nonce'])
@@ -268,4 +274,3 @@ def handle_receive_message(data):
 
 if __name__ == '__main__':
     socketio.run(app, debug=True)
-

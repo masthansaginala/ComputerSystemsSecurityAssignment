@@ -1,52 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f0f0f0;
-        }
-        .container {
-            background: white;
-            padding: 20px 40px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 80%;
-            max-width: 600px;
-        }
-        h1 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-        .logout-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            color: white;
-            background-color: #dc3545;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .logout-button:hover {
-            background-color: #c82333;
-        }
-        .message {
-            color: green;
-            margin-bottom: 15px;
-        }
-    </style>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', (event) => {
@@ -55,10 +10,11 @@
             socket.on('connect', () => {
                 console.log('Connected to the server');
             });
+
             socket.on('chat_request_received', (data) => {
                 console.log('Chat request received from:', data.sender);
                 const requestElem = document.createElement('div');
-                requestElem.textContent = 'Chat request from ${data.sender}';
+                requestElem.textContent = `Chat request from ${data.sender}`;
                 const acceptButton = document.createElement('button');
                 acceptButton.textContent = 'Accept';
                 acceptButton.addEventListener('click', () => {
@@ -67,36 +23,34 @@
                 requestElem.appendChild(acceptButton);
                 document.getElementById('chatRequests').appendChild(requestElem);
             });
-            socket.on('public_key_received', (data) => {
-                console.log('Received public key from:', data.sender);
+
+            socket.on('exchange_keys', (data) => {
+                console.log('Received public key from:', data.other_user);
                 console.log('Public Key:', data.public_key);
-                socket.emit('exchange_keys', { other_user: data.sender, public_key: data.public_key });
-            });
-            socket.on('chat_request_accepted', (data) => {
-                console.log('Chat request accepted by:', data.recipient);
-                socket.emit('get_public_key', { user: data.recipient });
+                socket.emit('exchange_keys', { other_user: data.other_user, public_key: data.public_key });
             });
 
             socket.on('keys_exchanged', (data) => {
                 alert(data.status);
             });
+
             socket.on('receive_message', (data) => {
-                const messageElem = document.createElement('p');
-                messageElem.textContent = `Encrypted: ${data.encrypted_message}`;
-                document.getElementById('receivedMessages').appendChild(messageElem);
-                console.log(data); // For debugging
+                console.log('Encrypted Message:', data.encrypted_message);
+                socket.emit('receive_message', data);
             });
 
             socket.on('message', (data) => {
                 const messageElem = document.createElement('p');
-                messageElem.textContent = `Decrypted: ${data.message}`;
+                messageElem.textContent = `Decrypted: ${data.message} (from ${data.sender})`;
                 document.getElementById('receivedMessages').appendChild(messageElem);
                 console.log(data); // For debugging
             });
+
             document.getElementById('startChatBtn').addEventListener('click', () => {
                 const recipient = document.getElementById('recipient').value;
                 socket.emit('start_chat', { recipient });
             });
+
             document.getElementById('sendMessageBtn').addEventListener('click', () => {
                 const message = document.getElementById('message').value;
                 const recipient = document.getElementById('recipient').value;
@@ -106,22 +60,20 @@
     </script>
 </head>
 <body>
-    <div class="container">
-            <h1>Welcome to the Chat Room</h1>
-            <label>Recipient (Email):</label>
-            <input type="text" id="recipient" required>
-            <button id="startChatBtn">Start Chat</button>
-            <h2>Chat Requests</h2>
-            <div id="chatRequests"></div>
-            <br>
-            <label>Message:</label>
-            <input type="text" id="message" required>
-            <button id="sendMessageBtn">Send</button>
-            <h2>Received Messages</h2>
-            <div id="receivedMessages"></div>
-            <form action="{{ url_for('logout') }}" method="POST">
-                <button type="submit" class="logout-button">Logout</button>
-            </form>
-    </div>
+    <h1>Chat Room</h1>
+    <label>Recipient (Email):</label>
+    <input type="text" id="recipient" required>
+    <button id="startChatBtn">Start Chat</button>
+    <h2>Chat Requests</h2>
+    <div id="chatRequests"></div>
+    <br>
+    <label>Message:</label>
+    <input type="text" id="message" required>
+    <button id="sendMessageBtn">Send</button>
+    <h2>Received Messages</h2>
+    <div id="receivedMessages"></div>
+    <form id="logoutForm" method="POST" action="/logout">
+        <button type="submit">Logout</button>
+    </form>
 </body>
 </html>
