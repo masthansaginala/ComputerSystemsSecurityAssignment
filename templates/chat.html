@@ -47,20 +47,30 @@
             margin-bottom: 15px;
         }
     </style>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const socket = io();
+
+            socket.on('connect', () => {
+                console.log('Connected to the server');
+            });
+            document.getElementById('startChatBtn').addEventListener('click', () => {
+                const recipient = document.getElementById('recipient').value;
+                socket.emit('start_chat', { recipient });
+            });
+        });
+    </script>
 </head>
 <body>
     <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="message flash-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        <h1>Welcome to the Chat Room</h1>
-        <form action="{{ url_for('logout') }}" method="POST">
-            <button type="submit" class="logout-button">Logout</button>
-        </form>
+            <h1>Welcome to the Chat Room</h1>
+            <label>Recipient (Email):</label>
+            <input type="text" id="recipient" required>
+            <button id="startChatBtn">Start Chat</button>
+            <form action="{{ url_for('logout') }}" method="POST">
+                <button type="submit" class="logout-button">Logout</button>
+            </form>
     </div>
 </body>
 </html>
