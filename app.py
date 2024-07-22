@@ -103,11 +103,11 @@ def logout():
     flash('you are logged out please login again to have our services')
     return redirect(url_for('index'))
 
-@app.route('/protected', methods=['GET'])
-@jwt_required()
-def protected():
-    current_user = get_jwt_identity()
-    return jsonify(logged_in_as=current_user), 200
+@app.route('/chat')
+def chat():
+    if 'email' not in session:
+        return redirect(url_for('login'))
+    return render_template('chat.html')
         
 
 if __name__ == '__main__':
