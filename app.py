@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
 from dotenv import load_dotenv
-
+from flask_socketio import SocketIO, join_room
 # Load environment variables from .env file
 load_dotenv()
 
@@ -108,6 +108,12 @@ def chat():
     if 'email' not in session:
         return redirect(url_for('login'))
     return render_template('chat.html')
+
+@socketio.on('connect')
+def handle_connect():
+    email = session.get('email')
+    if email:
+        join_room(email)g
         
 
 if __name__ == '__main__':
