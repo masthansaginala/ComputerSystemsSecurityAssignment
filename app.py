@@ -7,6 +7,14 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired
 import os
 from dotenv import load_dotenv
 from flask_socketio import SocketIO, join_room
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PrivateFormat,
+    PublicFormat,
+    NoEncryption
+)
 # Load environment variables from .env file
 load_dotenv()
 
@@ -123,7 +131,15 @@ def handle_start_chat(data):
     recipient_email = data['recipient']
 
     private_key = parameters.generate_private_key()
-    publick_key = private_key.publick_key
+    public_key = private_key.public_key
+
+    session['private_key'] = private_key.private_bytes(
+        Encoding.PEM,
+        PrivateFormat.PKCS8,
+        NoEncryption()
+    )
+    public_key_pem = public_key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    public_keys[recipient_email] = b64encode(public_key_pem).decode('utf-8')
 
 if __name__ == '__main__':
     app.run(debug=True)
