@@ -240,5 +240,15 @@ def handle_send_message(data):
     if not aes_key:
         emit('error', {'message': 'AES key not found'}, room=session['email'])
         return
+    aesgcm = AESGCM(aes_key)
+    nonce = os.urandom(12)
+    encrypted_message = aesgcm.encrypt(nonce, message.encode('utf-8'), None)
+    
+    # Send the encrypted message to the recipient
+    socketio.emit('receive_message', {
+        'sender': session['email'],
+        'nonce': b64encode(nonce).decode('utf-8'),
+        'encrypted_message': b64encode(encrypted_message).decode('utf-8')
+    }, room=recipient)
 if __name__ == '__main__':
     app.run(debug=True)

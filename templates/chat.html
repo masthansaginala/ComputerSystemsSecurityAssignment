@@ -71,6 +71,11 @@
                 const recipient = document.getElementById('recipient').value;
                 socket.emit('start_chat', { recipient });
             });
+            document.getElementById('sendMessageBtn').addEventListener('click', () => {
+                const message = document.getElementById('message').value;
+                const recipient = document.getElementById('recipient').value;
+                socket.emit('send_message', { message, recipient });
+            });
         });
     </script>
 </head>
@@ -80,6 +85,9 @@
             <label>Recipient (Email):</label>
             <input type="text" id="recipient" required>
             <button id="startChatBtn">Start Chat</button>
+            <label>Message:</label>
+            <input type="text" id="message" required>
+            <button id="sendMessageBtn">Send</button>
             <form action="{{ url_for('logout') }}" method="POST">
                 <button type="submit" class="logout-button">Logout</button>
             </form>
