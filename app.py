@@ -40,7 +40,7 @@ app.config['MAIL_USE_SSL'] = False
 mail = Mail(app)
 
 # Configuration for SQLAlchemy
-app.config['DATABASE_URL'] = 'postgres://u4cgu2gimj7npc:p50d00178bca66c4799a380bdaaa58010a41e088e3fa3f37835613a6b34bb5e4e@ce0lkuo944ch99.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d1s5m2vted0ii3'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://u4cgu2gimj7npc:p50d00178bca66c4799a380bdaaa58010a41e088e3fa3f37835613a6b34bb5e4e@ce0lkuo944ch99.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d1s5m2vted0ii3'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Instantiate SQLAlchemy, Migrate, and JWTManager
