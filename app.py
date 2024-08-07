@@ -48,7 +48,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Instantiate SQLAlchemy, Migrate, and JWTManager
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-jwt = JWTManager(app)
 
 # Diffie-Hellman key exchange parameters
 parameters = dh.generate_parameters(generator=2, key_size=2048, backend=default_backend())
