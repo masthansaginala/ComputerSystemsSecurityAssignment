@@ -32,8 +32,8 @@ socketio = SocketIO(app)
 # Configuration for Flask-Mail
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_USERNAME'] = 'masthansaginala163@gmail.com'
+app.config['MAIL_PASSWORD'] = 'ztoygjlqwalhfibh'
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USE_SSL'] = False
 
